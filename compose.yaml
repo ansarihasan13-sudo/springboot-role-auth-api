@@ -1,0 +1,67 @@
+
+services:
+  clamav:
+    image: clamav/clamav:stable
+    container_name: employee-clamav
+    volumes:
+      - clamav_db:/var/lib/clamav
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "clamdcheck.sh || exit 1" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+  postgres:
+    image: postgres:16
+    container_name: employee-postgres
+    environment:
+      POSTGRES_DB: employee_db
+      POSTGRES_USER: appuser
+      POSTGRES_PASSWORD:  ${DB_PASSWORD:?DB_PASSWORD must be set}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U appuser -d employee_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: employee-app
+    ports:
+      - "8081:8080"
+    environment:
+      CLAMAV_HOST: clamav
+      CLAMAV_PORT: 3310
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRATION: 86400000
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/employee_db
+      SPRING_DATASOURCE_USERNAME: appuser
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      SPRING_FLYWAY_ENABLED: "true"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      FILE_STORAGE_LOCATION: /app/storage
+      TZ: Asia/Kolkata
+      JAVA_TOOL_OPTIONS: -Duser.timezone=Asia/Kolkata
+    volumes:
+      - employee_files:/app/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  employee_files:
+  clamav_db:

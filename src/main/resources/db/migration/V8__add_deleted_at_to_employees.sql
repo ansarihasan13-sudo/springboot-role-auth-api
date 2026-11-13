@@ -1,0 +1,3 @@
+ALTER TABLE employees
+ADD COLUMN deleted_at TIMESTAMP NULL,
+ADD COLUMN deleted_by UUID NULL;

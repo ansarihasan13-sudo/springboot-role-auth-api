@@ -1,0 +1,14 @@
+package com.Vishleshan.Api.repository;
+
+import com.Vishleshan.Api.entity.Admin;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+import java.util.Optional;
+import java.util.UUID;
+
+public interface AdminRepo extends JpaRepository<Admin, UUID> {
+
+    Optional<Admin> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+}
