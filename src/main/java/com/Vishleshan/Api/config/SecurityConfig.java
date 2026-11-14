@@ -76,6 +76,15 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/files/upload"
+                        ).hasAnyRole("ADMIN", "EMPLOYEE")
+
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/files/*/download")
+                        .hasAnyRole("ADMIN", "EMPLOYEE")
+
+                        .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/employees/dashboard"
                         ).hasRole("ADMIN")

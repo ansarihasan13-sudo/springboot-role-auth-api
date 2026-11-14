@@ -1,10 +1,15 @@
+
 package com.Vishleshan.Api.service;
+
 import com.Vishleshan.Api.entity.Admin;
 import com.Vishleshan.Api.entity.Employees;
 import com.Vishleshan.Api.entity.User;
+import com.Vishleshan.Api.entity.AccountType;
 import com.Vishleshan.Api.repository.AdminRepo;
 import com.Vishleshan.Api.repository.EmployeesRepo;
 import com.Vishleshan.Api.repository.UserRepository;
+import com.Vishleshan.Api.security.AppUserPrincipal;
+
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -18,7 +23,6 @@ public class AppUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     public AppUserDetailsService(
-
             AdminRepo adminRepo,
             EmployeesRepo employeesRepo,
             UserRepository userRepository) {
@@ -37,13 +41,14 @@ public class AppUserDetailsService implements UserDetailsService {
 
         if (admin != null) {
 
-            String roleName = admin.getRole().getRoleName();
-
-            return org.springframework.security.core.userdetails.User
-                    .withUsername(admin.getEmail())
-                    .password(admin.getPasswordHash())
-                    .roles(roleName)
-                    .build();
+            return new AppUserPrincipal(
+                    admin.getId(),
+                    admin.getEmail(),
+                    admin.getPasswordHash(),
+                    AccountType.ADMIN,
+                    admin.getRole().getRoleName(),
+                    true
+            );
         }
 
         // 2. Check Employee table
@@ -51,14 +56,18 @@ public class AppUserDetailsService implements UserDetailsService {
 
         if (employee != null) {
 
-            String roleName = employee.getRole().getRoleName();
+            boolean enabled =
+                    employee.isActive()
+                            && employee.getDeletedAt() == null;
 
-            return org.springframework.security.core.userdetails.User
-                    .withUsername(employee.getEmail())
-                    .password(employee.getPasswordHash())
-                    .roles(roleName)
-                    .disabled(!employee.isActive() || employee.getDeletedAt() != null)
-                    .build();
+            return new AppUserPrincipal(
+                    employee.getId(),
+                    employee.getEmail(),
+                    employee.getPasswordHash(),
+                    AccountType.EMPLOYEE,
+                    employee.getRole().getRoleName(),
+                    enabled
+            );
         }
 
         // 3. Check User table
@@ -66,13 +75,14 @@ public class AppUserDetailsService implements UserDetailsService {
 
         if (user != null) {
 
-            String roleName = user.getRole().getRoleName();
-
-            return org.springframework.security.core.userdetails.User
-                    .withUsername(user.getEmail())
-                    .password(user.getPasswordHash())
-                    .roles(roleName)
-                    .build();
+            return new AppUserPrincipal(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getPasswordHash(),
+                    AccountType.USER,
+                    user.getRole().getRoleName(),
+                    true
+            );
         }
 
         throw new UsernameNotFoundException(
